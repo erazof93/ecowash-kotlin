@@ -1,16 +1,21 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '../../generated/prisma/client'; // Asegúrate de que esta ruta sea correcta según tu estructura de carpetas
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   
+  constructor() {
+    const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+    super({ adapter });
+  }
+
   async onModuleInit() {
     await this.$connect();
-    console.log('✅ Conexión limpia establecida con db_ecowash en Docker');
+    console.log('✅ Conexión establecida con db_ecowash en Docker');
   }
 
   async onModuleDestroy() {
     await this.$disconnect();
-    console.log('🛑 Conexión con PostgreSQL cerrada de manera segura');
   }
 }
