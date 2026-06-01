@@ -1,7 +1,8 @@
-import { Controller, Post, Get, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req, Query } from '@nestjs/common';
 import { PedidosService } from './pedidos.service';
 import { CreatePedidoDto } from './dto/create-pedido.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { GetCercanosDto } from './dto/get-cercanos.dto';
 
 @Controller('pedidos')
 @UseGuards(JwtAuthGuard) // 🔒 Protegemos todas las rutas de pedidos con JWT
@@ -20,4 +21,9 @@ export class PedidosController {
   async obtenerTodos() {
     return this.pedidosService.obtenerTodos();
   }
+
+  @Get('cercanos')
+async obtenerCercanos(@Query() query: GetCercanosDto) {
+  return this.pedidosService.obtenerPedidosCercanos(query);
+}
 }
