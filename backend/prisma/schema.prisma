@@ -7,15 +7,6 @@ datasource db {
   provider = "postgresql"
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model spatial_ref_sys {
-  srid      Int     @id
-  auth_name String? @db.VarChar(256)
-  auth_srid Int?
-  srtext    String? @db.VarChar(2048)
-  proj4text String? @db.VarChar(2048)
-}
-
 model clientes {
   usuario_id            String    @id @db.Uuid
   calificacion_promedio Decimal?  @default(5.00) @db.Decimal(3, 2)
@@ -69,6 +60,15 @@ model pedidos {
   @@index([estado], map: "idx_pedidos_estado")
   @@index([ubicacion_cliente], map: "idx_pedidos_geom", type: Gist)
   @@index([lavador_id], map: "idx_pedidos_lavador")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
 }
 
 model ubicaciones_lavadores {
