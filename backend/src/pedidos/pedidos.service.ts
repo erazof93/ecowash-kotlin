@@ -6,11 +6,12 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePedidoDto } from './dto/create-pedido.dto';
 import { GetCercanosDto } from './dto/get-cercanos.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 
 @Injectable()
 export class PedidosService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly eventEmitter: EventEmitter2) {}
 
   async crearPedido(clienteId: string, dto: CreatePedidoDto) {
     // 1. Validar que el cliente exista en la tabla satélite 'clientes'
@@ -71,14 +72,27 @@ export class PedidosService {
         RETURNING id, cliente_id, precio_servicio_id, estado, direccion_texto, precio_total, comision_calculada, creado_at;
       `;
 
-      // Como $queryRaw devuelve un array, retornamos el primer registro creado
-      return nuevoPedido[0];
+      const pedidoGuardado = nuevoPedido[0];
+
+      // 🚀 3. Disparar el evento al ecosistema con los datos clave (ID y coordenadas)
+      this.eventEmitter.emit('pedido.creado', {
+        pedido: pedidoGuardado,
+        latitud: dto.latitud,
+        longitud: dto.longitud
+      });
+
+      return pedidoGuardado;
+
     } catch (error) {
       console.error('Error al insertar el pedido espacial:', error);
       throw new BadRequestException(
         'No se pudo procesar la ubicación geográfica del pedido',
       );
     }
+
+    
+
+
   }
 
   // Listar todos los pedidos (Útil para el panel de administración o historial global)

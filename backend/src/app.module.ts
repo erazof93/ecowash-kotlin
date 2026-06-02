@@ -7,9 +7,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { PreciosModule } from './precios/precios.module';
 import { PedidosModule } from './pedidos/pedidos.module';
 import { UbicacionesModule } from './ubicaciones/ubicaciones.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UsuariosModule, PreciosModule, PedidosModule, UbicacionesModule],
+  imports: [EventEmitterModule.forRoot(), PrismaModule, AuthModule, UsuariosModule, PreciosModule, PedidosModule, UbicacionesModule],
   controllers: [AppController],
   providers: [AppService],
 })
