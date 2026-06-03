@@ -7,25 +7,28 @@ import com.example.ecowash_client.core.network.RetrofitClient
 import com.example.ecowash_client.feature.auth.data.datasource.AuthLocalDataSource
 import com.example.ecowash_client.feature.auth.data.repository.AuthRepositoryImpl
 import com.example.ecowash_client.feature.auth.domain.usecase.LoginUseCase
+import com.example.ecowash_client.feature.auth.domain.usecase.RegisterUseCase
+import com.example.ecowash_client.feature.presentation.register.RegisterViewModel
 
 class LoginViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        // Inicialización de la infraestructura compartida por el módulo Auth
+        val apiService = RetrofitClient.createAuthApiService()
+        val localDataSource = AuthLocalDataSource(context)
+        val repository = AuthRepositoryImpl(apiService, localDataSource)
+
         if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
-            // 1. Inicializamos las fuentes de datos (DataSources)
-            val apiService = RetrofitClient.createAuthApiService()
-            val localDataSource = AuthLocalDataSource(context)
-
-            // 2. Acoplamos en el Repositorio
-            val repository = AuthRepositoryImpl(apiService, localDataSource)
-
-            // 3. Creamos el Caso de Uso de Dominio
             val loginUseCase = LoginUseCase(repository)
-
-            // 4. Retornamos el ViewModel inyectado
             return LoginViewModel(loginUseCase) as T
         }
-        throw IllegalArgumentException("Clase ViewModel desconocida: ${modelClass.name}")
+
+        if (modelClass.isAssignableFrom(RegisterViewModel::class.java)) {
+            val registerUseCase = RegisterUseCase(repository)
+            return RegisterViewModel(registerUseCase) as T
+        }
+
+        throw IllegalArgumentException("Clase ViewModel desconocida")
     }
 }

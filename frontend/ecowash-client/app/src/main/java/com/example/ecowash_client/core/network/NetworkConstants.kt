@@ -2,5 +2,5 @@ package com.example.ecowash_client.core.network
 
 object NetworkConstants {
     // Recuerda el '/' al final, es requerido estrictamente por Retrofit
-    const val BASE_URL = "http://192.168.1.100:3000/"
+    const val BASE_URL = "https://j6s8d9rl-3000.brs.devtunnels.ms/"
 }

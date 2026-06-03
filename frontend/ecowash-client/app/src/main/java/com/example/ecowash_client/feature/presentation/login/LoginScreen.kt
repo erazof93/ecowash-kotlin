@@ -11,7 +11,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    onNavigateToRegister: () -> Unit
 ) {
     var correo by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
@@ -82,6 +83,15 @@ fun LoginScreen(
             } else {
                 Text("Iniciar Sesión")
             }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 👈 2. AGREGAMOS EL BOTÓN EN LA PARTE INFERIOR
+        TextButton(
+            onClick = onNavigateToRegister,
+            enabled = uiState !is LoginState.Loading
+        ) {
+            Text("¿No tienes cuenta? Regístrate aquí")
         }
     }
 }

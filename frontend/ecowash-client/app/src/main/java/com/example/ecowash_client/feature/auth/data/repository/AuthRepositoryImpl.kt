@@ -3,6 +3,7 @@ package com.example.ecowash_client.feature.auth.data.repository
 import com.example.ecowash_client.feature.auth.data.datasource.AuthApiService
 import com.example.ecowash_client.feature.auth.data.datasource.AuthLocalDataSource
 import com.example.ecowash_client.feature.auth.data.model.LoginRequest
+import com.example.ecowash_client.feature.auth.data.model.RegisterRequest
 import com.example.ecowash_client.feature.auth.domain.model.Usuario
 import com.example.ecowash_client.feature.auth.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
@@ -22,8 +23,9 @@ class AuthRepositoryImpl(
         // 3. Convertimos (mapeamos) el DTO de infraestructura a la Entidad Pura de dominio
         return Usuario(
             id = response.usuario.id,
-            nombre = response.usuario.nombre_completo, // Mapea 'nombre_completo' de tu tabla al 'nombre' del dominio
-            email = response.usuario.correo
+            nombre = response.usuario.nombre_completo,
+            email = response.usuario.correo,
+            telefono = response.usuario.telefono ?: "" // 👈 Agregado aquí (si es null, pone texto vacío)
         )
     }
 
@@ -33,5 +35,26 @@ class AuthRepositoryImpl(
 
     override suspend fun logout() {
         localDataSource.clearAuth()
+    }
+
+    override suspend fun registrar(
+        correo: String,
+        contrasena: String,
+        nombreCompleto: String,
+        telefono: String
+    ): Usuario {
+        // 1. Enviamos los datos estructurados a NestJS
+        val response = apiService.register(RegisterRequest(correo, contrasena, nombreCompleto, telefono))
+
+        // 2. Persistimos el JWT en DataStore (Auto-login)
+        localDataSource.saveToken(response.token)
+
+        // 3. Devolvemos la entidad pura con sus 4 campos obligatorios
+        return Usuario(
+            id = response.usuario.id,
+            nombre = response.usuario.nombre_completo,
+            email = response.usuario.correo,
+            telefono = response.usuario.telefono ?: telefono // Usa el del backend o el ingresado por el usuario
+        )
     }
 }

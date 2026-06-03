@@ -10,6 +10,8 @@ import com.example.ecowash_client.feature.presentation.splash.SplashScreen
 import com.example.ecowash_client.feature.presentation.login.LoginScreen
 import com.example.ecowash_client.feature.presentation.login.LoginViewModel
 import com.example.ecowash_client.feature.presentation.login.LoginViewModelFactory
+import com.example.ecowash_client.feature.presentation.register.RegisterScreen
+import com.example.ecowash_client.feature.presentation.register.RegisterViewModel
 import com.example.ecowash_client.feature.presentation.screens.HomeScreen
 
 @Composable
@@ -36,9 +38,8 @@ fun NavigationGraph(navController: NavHostController) {
             )
         }
 
-        // Pantalla de Login
+        // Pantalla de Login (Modificada para añadir navegación al registro)
         composable<Route.Login> {
-            // Instanciamos el ViewModel usando nuestra Factory moderna de Compose
             val loginViewModel: LoginViewModel = viewModel(
                 factory = LoginViewModelFactory(context)
             )
@@ -49,6 +50,23 @@ fun NavigationGraph(navController: NavHostController) {
                     navController.navigate(Route.Home) {
                         popUpTo(Route.Login) { inclusive = true }
                     }
+                },
+                onNavigateToRegister = {
+                    // 👈 CONECTAMOS LA NAVEGACIÓN HACIA LA RUTA DE REGISTRO
+                    navController.navigate(Route.Register)
+                }
+            )
+        }
+        // Pantalla de Registro
+        composable<Route.Register> {
+            val registerViewModel: RegisterViewModel = viewModel(factory = LoginViewModelFactory(context))
+            RegisterScreen(
+                viewModel = registerViewModel,
+                onRegisterSuccess = {
+                    navController.navigate(Route.Home) { popUpTo(Route.Register) { inclusive = true } }
+                },
+                onBackToLogin = {
+                    navController.popBackStack()
                 }
             )
         }

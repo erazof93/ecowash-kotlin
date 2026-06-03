@@ -22,9 +22,24 @@ object RetrofitClient {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
+        /*  val client = OkHttpClient.Builder()
+            .addInterceptor(logging)
+            .build()  */
+
+        /* ================= Empieza =================*/
+
         val client = OkHttpClient.Builder()
             .addInterceptor(logging)
+            // 👇 AGREGADO: Interceptor para saltar la advertencia de VS Code en el Auth
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("X-Tunnel-Skip-AntiPhishing-Threshold", "true")
+                    .build()
+                chain.proceed(request)
+            }
             .build()
+
+        /* ================= termina =================*/
 
         return Retrofit.Builder()
             .baseUrl(NetworkConstants.BASE_URL)
@@ -49,6 +64,10 @@ object RetrofitClient {
                 // hasta recuperar el token del DataStore.
                 val token = runBlocking { localDataSource.getToken().first() }
                 val requestBuilder = chain.request().newBuilder()
+
+                // ===================== empieza simplemente aca se elimina =========
+                requestBuilder.addHeader("X-Tunnel-Skip-AntiPhishing-Threshold", "true")
+                // ======================= termina =========================
 
                 if (!token.isNullOrEmpty()) {
                     requestBuilder.addHeader("Authorization", "Bearer $token")
