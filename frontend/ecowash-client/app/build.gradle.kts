@@ -55,4 +55,27 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    // Jetpack Navigation Compose
+    implementation("androidx.navigation:navigation-compose:2.8.5")
+
+    // Retrofit (El "Dio" que íbamos a usar en Flutter, pero nativo)
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+
+    // OkHttp Logging Interceptor (Para ver las peticiones en el Logcat)
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // Jetpack DataStore (Preferencias seguras con Coroutines)
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // Coroutines de Kotlin
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // Serializable
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+
+    //splash
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
 }
