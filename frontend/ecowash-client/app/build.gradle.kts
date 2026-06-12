@@ -74,5 +74,16 @@ dependencies {
     //splash
     implementation("androidx.core:core-splashscreen:1.0.1")
 
-    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
+    implementation("com.squareup.retrofit2:converter-kotlinx-serialization:2.11.0")
+
+    // Google Play Services Location
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    // Material Icons Core (Home, List, ShoppingCart, etc.)
+    implementation("androidx.compose.material:material-icons-core")
+
+    // Lifecycle ViewModel Compose
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+
 }

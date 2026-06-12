@@ -1,21 +1,17 @@
 package com.example.ecowash_client.feature.auth.data.model
 
-import kotlinx.serialization.Serializable
+import com.google.gson.annotations.SerializedName
 
-@Serializable
 data class AuthResponseDto(
-    val token: String,
-    val usuario: UsuarioDto
+    @SerializedName("token") val token: String?,
+    @SerializedName("usuario") val usuario: UsuarioDto?
 )
 
-@Serializable
 data class UsuarioDto(
-    val id: String,
-    val correo: String,
-    val nombre_completo: String,
-    val telefono: String? = null,
-    val foto_url: String? = null,
-    val rol: String
+    @SerializedName("id") val id: String?,
+    @SerializedName("correo") val correo: String?,
+    @SerializedName("nombre_completo") val nombre_completo: String?,
+    @SerializedName("telefono") val telefono: String?,
+    @SerializedName("foto_url") val foto_url: String?,
+    @SerializedName("rol") val rol: String?
 )
-
-// =========== Lo que me devuelve NestJS

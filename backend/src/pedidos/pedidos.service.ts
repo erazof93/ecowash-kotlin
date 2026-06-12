@@ -14,18 +14,29 @@ export class PedidosService {
   constructor(private readonly prisma: PrismaService, private readonly eventEmitter: EventEmitter2) {}
 
   async crearPedido(clienteId: string, dto: CreatePedidoDto) {
-    // 1. Validar que el cliente exista en la tabla satélite 'clientes'
-    const clienteExiste = await this.prisma.clientes.findUnique({
-      where: { usuario_id: clienteId },
+    // 1. Validar que el usuario exista y tenga rol CLIENTE
+    const usuario = await this.prisma.usuarios.findUnique({
+      where: { id: clienteId },
     });
 
-    if (!clienteExiste) {
+    if (!usuario || usuario.rol !== 'CLIENTE') {
       throw new BadRequestException(
         'El usuario no está registrado como un cliente válido',
       );
     }
 
-    // 2. Buscar la tarifa oficial en la Matriz de Precios
+    // 2. Verificar si tiene fila en la tabla satélite 'clientes'; si no, crearla
+    let clienteExiste = await this.prisma.clientes.findUnique({
+      where: { usuario_id: clienteId },
+    });
+
+    if (!clienteExiste) {
+      clienteExiste = await this.prisma.clientes.create({
+        data: { usuario_id: clienteId },
+      });
+    }
+
+    // 3. Buscar la tarifa oficial en la Matriz de Precios
     const tarifa = await this.prisma.precios_servicios.findUnique({
       where: { id: dto.precio_servicio_id },
     });
@@ -44,12 +55,12 @@ export class PedidosService {
       ? Number(configComision.valor)
       : 0.15;
 
-    // 3. Convertir el precio a número para calcular las finanzas congeladas
+    // 4. Convertir el precio a número para calcular las finanzas congeladas
     const precioTotal = Number(tarifa.precio);
     const comisionCalculada = precioTotal * porcentajeComision;
 
     try {
-      // 4. Inserción Espacial con SQL Nativo vía Prisma $queryRaw
+      // 5. Inserción Espacial con SQL Nativo vía Prisma $queryRaw
       // Usamos ST_SetSRID y ST_MakePoint para transformar las coordenadas del GPS en geometría pura
       const nuevoPedido: any[] = await this.prisma.$queryRaw`
         INSERT INTO pedidos (
@@ -74,7 +85,7 @@ export class PedidosService {
 
       const pedidoGuardado = nuevoPedido[0];
 
-      // 🚀 3. Disparar el evento al ecosistema con los datos clave (ID y coordenadas)
+      // 6. Disparar el evento al ecosistema con los datos clave (ID y coordenadas)
       this.eventEmitter.emit('pedido.creado', {
         pedido: pedidoGuardado,
         latitud: dto.latitud,

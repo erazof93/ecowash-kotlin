@@ -1,11 +1,10 @@
 package com.example.ecowash_client.feature.auth.data.model
 
-import kotlinx.serialization.Serializable
+import com.google.gson.annotations.SerializedName
 
-@Serializable
 data class RegisterRequest(
-    val correo: String,
-    val contrasena: String,
-    val nombre_completo: String,
-    val telefono: String
+    @SerializedName("correo") val correo: String,
+    @SerializedName("contrasena") val contrasena: String,
+    @SerializedName("nombre_completo") val nombre_completo: String,
+    @SerializedName("telefono") val telefono: String
 )

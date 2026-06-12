@@ -1,10 +1,8 @@
 package com.example.ecowash_client.feature.auth.data.model
 
-import kotlinx.serialization.Serializable
+import com.google.gson.annotations.SerializedName
 
-@Serializable
 data class LoginRequest(
-    val correo: String,
-    val contrasena: String
+    @SerializedName("correo") val correo: String,
+    @SerializedName("contrasena") val contrasena: String
 )
-// ========= ENVIAMOS A NEST

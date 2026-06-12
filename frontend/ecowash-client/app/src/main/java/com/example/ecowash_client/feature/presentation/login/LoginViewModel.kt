@@ -28,14 +28,10 @@ class LoginViewModel(
                 val usuario = loginUseCase(correo, contrasena)
                 _state.value = LoginState.Success(usuario)
             } catch (e: retrofit2.HttpException) {
-                val errorMsg = when (e.code()) {
-                    401 -> "Credenciales incorrectas"
-                    404 -> "El usuario no existe"
-                    else -> "Error en el servidor (${e.code()})"
-                }
-                _state.value = LoginState.Error(errorMsg)
+                val body = e.response()?.errorBody()?.string() ?: ""
+                _state.value = LoginState.Error("Server ${e.code()}: $body")
             } catch (e: Exception) {
-                _state.value = LoginState.Error("No se pudo conectar al servidor. Verifica tu red.")
+                _state.value = LoginState.Error("${e.javaClass.simpleName}: ${e.message}")
             }
         }
     }
