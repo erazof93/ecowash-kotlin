@@ -31,14 +31,3 @@ export class PedidosController {
     return this.pedidosService.obtenerPedidosCercanos(query);
   }
 }
-
-  @Get()
-  async obtenerTodos() {
-    return this.pedidosService.obtenerTodos();
-  }
-
-  @Get('cercanos')
-async obtenerCercanos(@Query() query: GetCercanosDto) {
-  return this.pedidosService.obtenerPedidosCercanos(query);
-}
-}
