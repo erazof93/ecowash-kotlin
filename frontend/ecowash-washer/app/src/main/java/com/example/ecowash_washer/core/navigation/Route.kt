@@ -17,5 +17,8 @@ sealed interface Route {
     data object Register : Route
 
     @Serializable
-    data object PedidoDetalle : Route
+    data class PedidoDetalle(val pedidoId: String) : Route
+
+    @Serializable
+    data object PedidoActivo : Route
 }

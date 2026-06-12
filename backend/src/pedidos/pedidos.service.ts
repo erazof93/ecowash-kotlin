@@ -40,8 +40,66 @@ export class PedidosService {
     return { success: true, message: 'Pedido cancelado correctamente' };
   }
 
+  async aceptarPedido(pedidoId: string, lavadorId: string) {
+    const pedido: any = await this.prisma.$queryRaw`
+      SELECT id, cliente_id, lavador_id, estado FROM pedidos WHERE id = ${pedidoId}::uuid
+    `;
+
+    if (!pedido || pedido.length === 0) {
+      throw new NotFoundException('Pedido no encontrado');
+    }
+
+    const p = pedido[0];
+    if (p.estado !== 'PENDIENTE') {
+      throw new BadRequestException('Este pedido ya no esta disponible');
+    }
+    if (p.lavador_id && p.lavador_id.toString() !== lavadorId) {
+      throw new BadRequestException('Este pedido ya fue asignado a otro lavador');
+    }
+
+    await this.prisma.$executeRawUnsafe(
+      `UPDATE pedidos SET estado = 'ACEPTADO'::estado_pedido_enum, lavador_id = $1::uuid, actualizado_at = NOW() WHERE id = $2::uuid`,
+      lavadorId,
+      pedidoId
+    );
+
+    return { success: true, message: 'Pedido aceptado correctamente' };
+  }
+
+  async cambiarEstado(pedidoId: string, lavadorId: string, estadoActual: string, estadoNuevo: string) {
+    const pedido: any = await this.prisma.$queryRaw`
+      SELECT id, lavador_id, estado FROM pedidos WHERE id = ${pedidoId}::uuid
+    `;
+
+    if (!pedido || pedido.length === 0) {
+      throw new NotFoundException('Pedido no encontrado');
+    }
+
+    const p = pedido[0];
+    if (p.lavador_id?.toString() !== lavadorId) {
+      throw new BadRequestException('No eres el lavador asignado a este pedido');
+    }
+    if (p.estado !== estadoActual) {
+      throw new BadRequestException(`El pedido debe estar en estado ${estadoActual}`);
+    }
+
+    if (estadoNuevo === 'LAVANDO') {
+      await this.prisma.$executeRawUnsafe(
+        `UPDATE pedidos SET estado = 'LAVANDO'::estado_pedido_enum, lavado_iniciado_at = NOW(), actualizado_at = NOW() WHERE id = $1::uuid`,
+        pedidoId
+      );
+    } else {
+      await this.prisma.$executeRawUnsafe(
+        `UPDATE pedidos SET estado = $1::estado_pedido_enum, actualizado_at = NOW() WHERE id = $2::uuid`,
+        estadoNuevo,
+        pedidoId
+      );
+    }
+
+    return { success: true, message: `Pedido actualizado a ${estadoNuevo}` };
+  }
+
   async crearPedido(clienteId: string, dto: CreatePedidoDto) {
-    // 1. Validar que el usuario exista y tenga rol CLIENTE
     const usuario = await this.prisma.usuarios.findUnique({
       where: { id: clienteId },
     });
@@ -52,7 +110,6 @@ export class PedidosService {
       );
     }
 
-    // 2. Verificar si tiene fila en la tabla satélite 'clientes'; si no, crearla
     let clienteExiste = await this.prisma.clientes.findUnique({
       where: { usuario_id: clienteId },
     });
@@ -63,7 +120,6 @@ export class PedidosService {
       });
     }
 
-    // 3. Buscar la tarifa oficial en la Matriz de Precios
     const tarifa = await this.prisma.precios_servicios.findUnique({
       where: { id: dto.precio_servicio_id },
     });
@@ -74,7 +130,6 @@ export class PedidosService {
       );
     }
 
-    //tarifa desde la base de datos
     const configComision = await this.prisma.configuracion_global.findUnique({
       where: { clave: 'porcentaje_comision' },
     });
@@ -82,13 +137,10 @@ export class PedidosService {
       ? Number(configComision.valor)
       : 0.15;
 
-    // 4. Convertir el precio a número para calcular las finanzas congeladas
     const precioTotal = Number(tarifa.precio);
     const comisionCalculada = precioTotal * porcentajeComision;
 
     try {
-      // 5. Inserción Espacial con SQL Nativo vía Prisma $queryRaw
-      // Usamos ST_SetSRID y ST_MakePoint para transformar las coordenadas del GPS en geometría pura
       const nuevoPedido: any[] = await this.prisma.$queryRaw`
         INSERT INTO pedidos (
           cliente_id, 
@@ -112,7 +164,6 @@ export class PedidosService {
 
       const pedidoGuardado = nuevoPedido[0];
 
-      // 6. Disparar el evento al ecosistema con los datos clave (ID y coordenadas)
       this.eventEmitter.emit('pedido.creado', {
         pedido: pedidoGuardado,
         latitud: dto.latitud,
@@ -127,59 +178,49 @@ export class PedidosService {
         'No se pudo procesar la ubicación geográfica del pedido',
       );
     }
-
-    
-
-
   }
 
-  // Listar todos los pedidos (Útil para el panel de administración o historial global)
   async obtenerTodos() {
     return this.prisma.pedidos.findMany({
       orderBy: { creado_at: 'desc' },
     });
   }
 
-
-  //tratamiento con postgis
-
   async obtenerPedidosCercanos(dto: GetCercanosDto) {
-  const lat = parseFloat(dto.latitud);
-  const lng = parseFloat(dto.longitud);
-  const radioMetros = parseFloat(dto.radioKm) * 1000; // 🗺️ PostGIS opera en metros
+    const lat = parseFloat(dto.latitud);
+    const lng = parseFloat(dto.longitud);
+    const radioMetros = parseFloat(dto.radioKm) * 1000;
 
-  try {
-    // Query SQL Nativo para explotar los índices espaciales de PostGIS
-    const pedidosCercanos = await this.prisma.$queryRaw`
-      SELECT 
-        id,
-        cliente_id,
-        precio_servicio_id,
-        estado,
-        direccion_texto,
-        precio_total,
-        creado_at,
-        -- 📏 Calculamos la distancia exacta en metros entre el cliente y el lavador
-        ST_Distance(
-          ubicacion_cliente,
-          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
-        ) AS distancia_metros
-      FROM pedidos
-      WHERE 
-        estado = 'PENDIENTE'::estado_pedido_enum
-        -- 🎯 Filtramos solo los que estén dentro del radio (ST_DWithin usa metros sobre geography)
-        AND ST_DWithin(
-          ubicacion_cliente,
-          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
-          ${radioMetros}
-        )
-      ORDER BY distancia_metros ASC; -- 🧭 Del más cercano al más lejano
-    `;
+    try {
+      const pedidosCercanos = await this.prisma.$queryRaw`
+        SELECT 
+          id,
+          cliente_id,
+          precio_servicio_id,
+          estado,
+          direccion_texto,
+          precio_total,
+          comision_calculada,
+          creado_at,
+          ST_Distance(
+            ubicacion_cliente,
+            ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
+          ) AS distancia_metros
+        FROM pedidos
+        WHERE 
+          estado = 'PENDIENTE'::estado_pedido_enum
+          AND ST_DWithin(
+            ubicacion_cliente,
+            ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+            ${radioMetros}
+          )
+        ORDER BY distancia_metros ASC;
+      `;
 
-    return pedidosCercanos;
-  } catch (error) {
-    console.error('Error en la consulta espacial de cercanía:', error);
-    throw new BadRequestException('Error al procesar la búsqueda por coordenadas');
+      return pedidosCercanos;
+    } catch (error) {
+      console.error('Error en la consulta espacial de cercanía:', error);
+      throw new BadRequestException('Error al procesar la búsqueda por coordenadas');
+    }
   }
-}
 }

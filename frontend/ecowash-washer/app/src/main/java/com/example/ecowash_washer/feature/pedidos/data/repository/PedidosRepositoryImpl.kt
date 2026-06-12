@@ -20,6 +20,30 @@ class PedidosRepositoryImpl(
         return apiService.getPedidos().map { it.toDomain() }
     }
 
+    override suspend fun aceptarPedido(pedidoId: String) {
+        apiService.aceptarPedido(pedidoId)
+    }
+
+    override suspend fun cancelarPedido(pedidoId: String) {
+        apiService.cancelarPedido(pedidoId)
+    }
+
+    override suspend fun marcarEnCamino(pedidoId: String) {
+        apiService.marcarEnCamino(pedidoId)
+    }
+
+    override suspend fun marcarEnSitio(pedidoId: String) {
+        apiService.marcarEnSitio(pedidoId)
+    }
+
+    override suspend fun iniciarLavado(pedidoId: String) {
+        apiService.iniciarLavado(pedidoId)
+    }
+
+    override suspend fun finalizarPedido(pedidoId: String) {
+        apiService.finalizarPedido(pedidoId)
+    }
+
     private fun com.example.ecowash_washer.feature.pedidos.data.model.PedidoDto.toDomain() = Pedido(
         id = id,
         clienteId = cliente_id,

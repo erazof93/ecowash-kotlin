@@ -12,13 +12,37 @@ export class PedidosController {
   @Post()
   async crear(@Req() req: any, @Body() createPedidoDto: CreatePedidoDto) {
     const clienteId = req.user.id;
-    console.log("👉 EL ID QUE VIENE EN EL TOKEN ES:", req.user.id);
     return this.pedidosService.crearPedido(clienteId, createPedidoDto);
   }
 
   @Patch(':id/cancelar')
   async cancelar(@Param('id') id: string, @Req() req: any) {
     return this.pedidosService.cancelarPedido(id, req.user.id);
+  }
+
+  @Patch(':id/aceptar')
+  async aceptar(@Param('id') id: string, @Req() req: any) {
+    return this.pedidosService.aceptarPedido(id, req.user.id);
+  }
+
+  @Patch(':id/en-camino')
+  async enCamino(@Param('id') id: string, @Req() req: any) {
+    return this.pedidosService.cambiarEstado(id, req.user.id, 'ACEPTADO', 'EN_CAMINO');
+  }
+
+  @Patch(':id/en-sitio')
+  async enSitio(@Param('id') id: string, @Req() req: any) {
+    return this.pedidosService.cambiarEstado(id, req.user.id, 'EN_CAMINO', 'EN_SITIO');
+  }
+
+  @Patch(':id/iniciar-lavado')
+  async iniciarLavado(@Param('id') id: string, @Req() req: any) {
+    return this.pedidosService.cambiarEstado(id, req.user.id, 'EN_SITIO', 'LAVANDO');
+  }
+
+  @Patch(':id/finalizar')
+  async finalizar(@Param('id') id: string, @Req() req: any) {
+    return this.pedidosService.cambiarEstado(id, req.user.id, 'LAVANDO', 'FINALIZADO');
   }
 
   @Get()
