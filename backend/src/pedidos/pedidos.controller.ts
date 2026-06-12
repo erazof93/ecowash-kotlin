@@ -50,6 +50,11 @@ export class PedidosController {
     return this.pedidosService.obtenerTodos();
   }
 
+  @Get('pendientes')
+  async obtenerPendientes() {
+    return this.pedidosService.obtenerPendientes();
+  }
+
   @Get('cercanos')
   async obtenerCercanos(@Query() query: GetCercanosDto) {
     return this.pedidosService.obtenerPedidosCercanos(query);

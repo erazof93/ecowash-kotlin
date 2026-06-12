@@ -12,8 +12,11 @@ data class AuthResponseDto(
 data class UsuarioDto(
     val id: String,
     val correo: String,
-    val nombre_completo: String,
+    val nombre_completo: String? = null,
+    val nombreCompleto: String? = null,
     val telefono: String? = null,
     val foto_url: String? = null,
     val rol: String
-)
+) {
+    val nombre get() = nombre_completo ?: nombreCompleto ?: ""
+}

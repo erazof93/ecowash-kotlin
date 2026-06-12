@@ -15,7 +15,7 @@ import retrofit2.Retrofit
 
 object RetrofitClient {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val contentType = "application/json".toMediaType()
 
     private val logging = HttpLoggingInterceptor().apply {

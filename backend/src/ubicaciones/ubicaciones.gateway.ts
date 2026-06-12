@@ -24,39 +24,20 @@ export class UbicacionesGateway implements OnGatewayConnection, OnGatewayDisconn
 
   @OnEvent('pedido.creado')
   async handlePedidoCreadoNotificacion(payload: { pedido: any; latitud: number; longitud: number }) {
-    console.log(`📣 Evento interno recibido: Analizando radar para el pedido ${payload.pedido.id}`);
+    console.log(`📣 Evento interno recibido: Notificando pedido ${payload.pedido.id}`);
 
-    // 🗺️ Buscamos los lavadores que estén en línea a menos de 5000 metros (5KM) de la latitud/longitud del pedido
-    const radioMetros = 5000; 
-    
     try {
-      // 🎯 Corrección: Se usan las propiedades directas del payload en español
-      const lavadoresCercanos: any[] = await this.prisma.$queryRaw`
-        SELECT 
-          lavador_id,
-          ST_Distance(coordenada, ST_SetSRID(ST_MakePoint(${Number(payload.longitud)}, ${Number(payload.latitud)}), 4326)::geography) as distancia
-        FROM ubicaciones_lavadores
-        WHERE ST_DWithin(coordenada, ST_SetSRID(ST_MakePoint(${Number(payload.longitud)}, ${Number(payload.latitud)}), 4326)::geography, ${radioMetros})
-        AND ultima_actualizacion >= NOW() - INTERVAL '5 minutes'; -- ⏱️ Solo lavadores activos en los últimos 5 min
-      `;
-
-      console.log(`🎯 Se encontraron ${lavadoresCercanos.length} lavadores en el rango de cobertura.`);
-
-      // 📡 Emitimos la alerta por WebSocket a todo el namespace bajo el evento 'nuevo_pedido_disponible'
-      if (lavadoresCercanos.length > 0) {
-        this.server.emit('nuevo_pedido_disponible', {
-          mensaje: '¡Hay un nuevo lavado cerca de tu ubicación!',
-          pedido: payload.pedido,
-          coordenadas_cliente: {
-            latitud: payload.latitud,
-            longitud: payload.longitud
-          }
-        });
-        console.log(`⚡ Alerta de WebSocket enviada a los lavadores en zona.`);
-      }
-
+      this.server.emit('nuevo_pedido_disponible', {
+        mensaje: '¡Hay un nuevo lavado cerca de tu ubicación!',
+        pedido: payload.pedido,
+        coordenadas_cliente: {
+          latitud: payload.latitud,
+          longitud: payload.longitud
+        }
+      });
+      console.log(`⚡ Alerta de WebSocket enviada a todos los lavadores conectados.`);
     } catch (error) {
-      console.error('Error al calcular radar de lavadores para notificación:', error);
+      console.error('Error al enviar notificación WebSocket:', error);
     }
   }
   

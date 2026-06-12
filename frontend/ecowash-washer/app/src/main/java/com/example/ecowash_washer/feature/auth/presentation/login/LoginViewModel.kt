@@ -17,7 +17,8 @@ class LoginViewModel(
     val state: StateFlow<LoginState> = _state.asStateFlow()
 
     fun login(correo: String, contrasena: String) {
-        if (correo.isBlank() || contrasena.isBlank()) {
+        val email = correo.trim()
+        if (email.isBlank() || contrasena.isBlank()) {
             _state.value = LoginState.Error("Los campos no pueden estar vacios")
             return
         }
@@ -25,13 +26,15 @@ class LoginViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             _state.value = LoginState.Loading
             try {
-                val usuario = loginUseCase(correo, contrasena)
+                val usuario = loginUseCase(email, contrasena)
                 _state.value = LoginState.Success(usuario)
             } catch (e: retrofit2.HttpException) {
-                val errorMsg = when (e.code()) {
-                    401 -> "Credenciales incorrectas"
-                    404 -> "El usuario no existe"
-                    else -> "Error en el servidor (${e.code()})"
+                val errorBody = e.response()?.errorBody()?.string() ?: ""
+                val errorMsg = try {
+                    val json = org.json.JSONObject(errorBody)
+                    json.optString("message", "Error: ${e.code()}")
+                } catch (_: Exception) {
+                    "Error: ${e.code()}"
                 }
                 _state.value = LoginState.Error(errorMsg)
             } catch (e: Exception) {

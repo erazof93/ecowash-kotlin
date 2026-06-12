@@ -186,6 +186,13 @@ export class PedidosService {
     });
   }
 
+  async obtenerPendientes() {
+    return this.prisma.pedidos.findMany({
+      where: { estado: 'PENDIENTE' },
+      orderBy: { creado_at: 'desc' },
+    });
+  }
+
   async obtenerPedidosCercanos(dto: GetCercanosDto) {
     const lat = parseFloat(dto.latitud);
     const lng = parseFloat(dto.longitud);
@@ -194,14 +201,17 @@ export class PedidosService {
     try {
       const pedidosCercanos = await this.prisma.$queryRaw`
         SELECT 
-          id,
-          cliente_id,
-          precio_servicio_id,
-          estado,
+          id::text,
+          cliente_id::text,
+          precio_servicio_id::text,
+          estado::text,
           direccion_texto,
-          precio_total,
-          comision_calculada,
-          creado_at,
+          precio_total::float8,
+          comision_calculada::float8,
+          TO_CHAR(creado_at, 'YYYY-MM-DD"T"HH24:MI:SS') AS creado_at,
+          TO_CHAR(actualizado_at, 'YYYY-MM-DD"T"HH24:MI:SS') AS actualizado_at,
+          ST_Y(ubicacion_cliente)::float8 AS latitud,
+          ST_X(ubicacion_cliente)::float8 AS longitud,
           ST_Distance(
             ubicacion_cliente,
             ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography

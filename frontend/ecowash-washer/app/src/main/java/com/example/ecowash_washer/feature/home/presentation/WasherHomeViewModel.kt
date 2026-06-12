@@ -10,10 +10,13 @@ import com.example.ecowash_washer.feature.pedidos.data.repository.PedidosReposit
 import com.example.ecowash_washer.feature.pedidos.domain.model.Pedido
 import com.example.ecowash_washer.feature.pedidos.domain.usecase.GetCercanosUseCase
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -33,6 +36,15 @@ class WasherHomeViewModel(context: Context) : ViewModel() {
 
     private val _conexionState = MutableStateFlow<Boolean>(false)
     val conexionState: StateFlow<Boolean> = _conexionState.asStateFlow()
+
+    private val _enLinea = MutableStateFlow(false)
+    val enLinea: StateFlow<Boolean> = _enLinea.asStateFlow()
+
+    private var _ultimaLat: Double? = null
+    private var _ultimaLng: Double? = null
+
+    private var pollingJob: Job? = null
+    private var locationJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -77,6 +89,7 @@ class WasherHomeViewModel(context: Context) : ViewModel() {
                         if (currentList.none { it.id == pedidoConCoordenadas.id }) {
                             currentList.add(0, pedidoConCoordenadas)
                             _pedidosEnVivo.value = currentList
+                            _pedidosState.value = PedidosState.Success(currentList)
                         }
                     }
                 } catch (e: Exception) {
@@ -84,23 +97,126 @@ class WasherHomeViewModel(context: Context) : ViewModel() {
                 }
             }
         }
+    }
 
-        SocketManager.connect()
+    fun toggleEnLinea(latitud: Double? = null, longitud: Double? = null) {
+        val nuevoEstado = !_enLinea.value
+        _enLinea.value = nuevoEstado
+
+        if (nuevoEstado) {
+            val lat = latitud ?: _ultimaLat
+            val lng = longitud ?: _ultimaLng
+            if (lat != null && lng != null) {
+                _ultimaLat = lat
+                _ultimaLng = lng
+            }
+            SocketManager.connect()
+            if (lat != null && lng != null) {
+                cargarPedidosCercanos(lat, lng)
+                enviarUbicacion(lat, lng)
+            }
+            iniciarPolling()
+            iniciarActualizacionUbicacion()
+        } else {
+            detenerPolling()
+            detenerActualizacionUbicacion()
+            _pedidosState.value = PedidosState.Idle
+            _pedidosEnVivo.value = emptyList()
+            SocketManager.disconnect()
+        }
+    }
+
+    fun refresh() {
+        val lat = _ultimaLat ?: return
+        val lng = _ultimaLng ?: return
+        cargarPedidosCercanos(lat, lng)
+        enviarUbicacion(lat, lng)
+    }
+
+    private fun iniciarPolling() {
+        pollingJob?.cancel()
+        pollingJob = viewModelScope.launch(Dispatchers.IO) {
+            while (isActive) {
+                delay(30_000L)
+                val lat = _ultimaLat ?: continue
+                val lng = _ultimaLng ?: continue
+                try {
+                    var pedidos = getCercanosUseCase(
+                        lat.toString(),
+                        lng.toString(),
+                        "10"
+                    )
+
+                    if (pedidos.isEmpty()) {
+                        try {
+                            val pendientes = repository.getPedidos()
+                            pedidos = pendientes.filter { it.estado == "PENDIENTE" }
+                        } catch (_: Exception) {}
+                    }
+
+                    _pedidosState.value = PedidosState.Success(pedidos)
+                    _pedidosEnVivo.value = pedidos
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    private fun detenerPolling() {
+        pollingJob?.cancel()
+        pollingJob = null
+    }
+
+    private fun iniciarActualizacionUbicacion() {
+        locationJob?.cancel()
+        locationJob = viewModelScope.launch {
+            while (isActive) {
+                delay(60_000L)
+                val lat = _ultimaLat ?: continue
+                val lng = _ultimaLng ?: continue
+                enviarUbicacion(lat, lng)
+            }
+        }
+    }
+
+    private fun detenerActualizacionUbicacion() {
+        locationJob?.cancel()
+        locationJob = null
     }
 
     fun cargarPedidosCercanos(latitud: Double, longitud: Double) {
+        _ultimaLat = latitud
+        _ultimaLng = longitud
         viewModelScope.launch(Dispatchers.IO) {
-            _pedidosState.value = PedidosState.Loading
+            if (_pedidosState.value !is PedidosState.Success) {
+                _pedidosState.value = PedidosState.Loading
+            }
             try {
-                val pedidos = getCercanosUseCase(
+                var pedidos = getCercanosUseCase(
                     latitud.toString(),
                     longitud.toString(),
-                    "5"
+                    "10"
                 )
+
+                if (pedidos.isEmpty()) {
+                    try {
+                        val pendientes = repository.getPedidos()
+                        pedidos = pendientes.filter { it.estado == "PENDIENTE" }
+                    } catch (_: Exception) {}
+                }
+
                 _pedidosState.value = PedidosState.Success(pedidos)
                 _pedidosEnVivo.value = pedidos
             } catch (e: Exception) {
-                _pedidosState.value = PedidosState.Error("No se pudieron cargar pedidos cercanos")
+                try {
+                    val pendientes = repository.getPedidos()
+                    val pedidosFiltrados = pendientes.filter { it.estado == "PENDIENTE" }
+                    _pedidosState.value = PedidosState.Success(pedidosFiltrados)
+                    _pedidosEnVivo.value = pedidosFiltrados
+                } catch (_: Exception) {
+                    if (_pedidosState.value !is PedidosState.Success) {
+                        _pedidosState.value = PedidosState.Error("No se pudieron cargar pedidos cercanos")
+                    }
+                }
             }
         }
     }
@@ -111,13 +227,9 @@ class WasherHomeViewModel(context: Context) : ViewModel() {
     }
 
     fun desconectar() {
+        _enLinea.value = false
+        detenerPolling()
+        detenerActualizacionUbicacion()
         SocketManager.disconnect()
     }
-}
-
-sealed interface PedidosState {
-    data object Idle : PedidosState
-    data object Loading : PedidosState
-    data class Success(val pedidos: List<Pedido>) : PedidosState
-    data class Error(val message: String) : PedidosState
 }

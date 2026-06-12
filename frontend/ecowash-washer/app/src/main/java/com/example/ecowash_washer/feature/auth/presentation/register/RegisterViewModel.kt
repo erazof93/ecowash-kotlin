@@ -28,7 +28,15 @@ class RegisterViewModel(
                 val usuario = registerUseCase(correo, contrasena, nombreCompleto, telefono)
                 _state.value = RegisterState.Success(usuario)
             } catch (e: retrofit2.HttpException) {
-                _state.value = RegisterState.Error("Error en el servidor: ${e.code()}. Intentalo de nuevo.")
+                val errorBody = e.response()?.errorBody()?.string() ?: ""
+                val message = try {
+                    val json = org.json.JSONObject(errorBody)
+                    val msg = json.optString("message", "")
+                    if (msg is String && msg.isNotEmpty()) msg else "Error: ${e.code()}"
+                } catch (_: Exception) {
+                    "Error: ${e.code()}"
+                }
+                _state.value = RegisterState.Error(message)
             } catch (e: Exception) {
                 _state.value = RegisterState.Error("Error de red. Verifica tu conexion.")
             }

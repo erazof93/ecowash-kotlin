@@ -19,7 +19,7 @@ class AuthRepositoryImpl(
         localDataSource.saveUserId(response.usuario.id)
         return Usuario(
             id = response.usuario.id,
-            nombre = response.usuario.nombre_completo,
+            nombre = response.usuario.nombre,
             email = response.usuario.correo,
             telefono = response.usuario.telefono ?: "",
             rol = response.usuario.rol
@@ -51,7 +51,7 @@ class AuthRepositoryImpl(
         localDataSource.saveUserId(response.usuario.id)
         return Usuario(
             id = response.usuario.id,
-            nombre = response.usuario.nombre_completo,
+            nombre = response.usuario.nombre,
             email = response.usuario.correo,
             telefono = response.usuario.telefono ?: telefono,
             rol = response.usuario.rol

@@ -22,6 +22,8 @@ object SocketManager {
     private val _connectionStateFlow = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
     val connectionStateFlow = _connectionStateFlow.asSharedFlow()
 
+    private val pendingLocation = mutableListOf<Pair<String, Pair<Double, Double>>>()
+
     fun connect() {
         if (socket?.connected() == true) return
 
@@ -38,6 +40,13 @@ object SocketManager {
             socket?.on(Socket.EVENT_CONNECT) {
                 Log.d(TAG, "Conectado al WebSocket")
                 _connectionStateFlow.tryEmit(true)
+
+                synchronized(pendingLocation) {
+                    for ((lavadorId, coords) in pendingLocation) {
+                        enviarUbicacionDirecto(lavadorId, coords.first, coords.second)
+                    }
+                    pendingLocation.clear()
+                }
             }
 
             socket?.on(Socket.EVENT_DISCONNECT) {
@@ -93,9 +102,24 @@ object SocketManager {
         socket?.disconnect()
         socket?.off()
         socket = null
+        synchronized(pendingLocation) {
+            pendingLocation.clear()
+        }
     }
 
     fun enviarUbicacion(lavadorId: String, latitud: Double, longitud: Double) {
+        if (socket?.connected() == true) {
+            enviarUbicacionDirecto(lavadorId, latitud, longitud)
+        } else {
+            Log.d(TAG, "Socket no conectado, encolando ubicacion para enviar despues")
+            synchronized(pendingLocation) {
+                pendingLocation.removeAll { it.first == lavadorId }
+                pendingLocation.add(lavadorId to Pair(latitud, longitud))
+            }
+        }
+    }
+
+    private fun enviarUbicacionDirecto(lavadorId: String, latitud: Double, longitud: Double) {
         try {
             val data = JSONObject().apply {
                 put("lavador_id", lavadorId)

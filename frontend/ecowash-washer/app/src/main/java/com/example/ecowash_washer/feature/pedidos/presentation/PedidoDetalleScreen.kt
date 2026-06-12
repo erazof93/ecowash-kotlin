@@ -1,5 +1,7 @@
 package com.example.ecowash_washer.feature.pedidos.presentation
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -100,16 +102,82 @@ fun PedidoDetalleScreen(
                             style = MaterialTheme.typography.titleMedium
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Icon(
-                            Icons.Filled.LocationOn,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            pedido!!.direccion_texto,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Filled.LocationOn,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                pedido!!.direccion_texto,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        if (pedido!!.latitud != null && pedido!!.longitud != null) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                "Abrir en navegacion",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                val lat = pedido!!.latitud!!
+                                val lng = pedido!!.longitud!!
+
+                                OutlinedButton(
+                                    onClick = {
+                                        val uri = Uri.parse("waze://ul?ll=$lat,$lng&navigate=yes")
+                                        val intent = Intent(Intent.ACTION_VIEW, uri)
+                                        try {
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {
+                                            val webUri = Uri.parse("https://www.waze.com/ul?ll=$lat,$lng&navigate=yes")
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, webUri))
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Star,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Waze")
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        val uri = Uri.parse("google.navigation:q=$lat,$lng&mode=d")
+                                        val intent = Intent(Intent.ACTION_VIEW, uri)
+                                        try {
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {
+                                            val webUri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$lat,$lng")
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, webUri))
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Place,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Google Maps")
+                                }
+                            }
+                        }
                     }
                 }
 

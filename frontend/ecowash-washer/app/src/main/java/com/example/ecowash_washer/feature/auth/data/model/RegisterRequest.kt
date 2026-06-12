@@ -7,5 +7,6 @@ data class RegisterRequest(
     val correo: String,
     val contrasena: String,
     val nombre_completo: String,
-    val telefono: String
+    val telefono: String,
+    val rol: String = "LAVADOR"
 )

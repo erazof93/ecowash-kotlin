@@ -19,6 +19,9 @@ interface PedidosApiService {
     @GET("pedidos")
     suspend fun getPedidos(): List<PedidoDto>
 
+    @GET("pedidos/pendientes")
+    suspend fun getPedidosPendientes(): List<PedidoDto>
+
     @PATCH("pedidos/{id}/aceptar")
     suspend fun aceptarPedido(@Path("id") id: String): Response<Unit>
 
