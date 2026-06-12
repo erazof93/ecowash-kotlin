@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ecowash_client.core.network.RetrofitClient
 import com.example.ecowash_client.feature.pedidos.data.model.PedidoDto
+import com.example.ecowash_client.feature.pedidos.presentation.CrearPedidoState
+import com.example.ecowash_client.feature.pedidos.presentation.PedidosViewModel
+import com.example.ecowash_client.feature.pedidos.presentation.CancelarState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -33,10 +36,20 @@ fun PedidoEnCursoScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val apiService = remember { RetrofitClient.createPedidosApiService(context) }
+    val viewModel = remember { PedidosViewModel(context) }
+    val cancelarState by viewModel.cancelarState.collectAsState()
 
     var pedido by remember { mutableStateOf<PedidoDto?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var showCancelDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(cancelarState) {
+        if (cancelarState is CancelarState.Success) {
+            viewModel.resetCancelarState()
+            onVolver()
+        }
+    }
 
     // Polling cada 5 segundos
     LaunchedEffect(pedidoId) {
@@ -148,7 +161,60 @@ fun PedidoEnCursoScreen(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
+
+            if (estado == "PENDIENTE" && pedido != null) {
+                Button(
+                    onClick = { showCancelDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Cancelar pedido", fontWeight = FontWeight.Bold)
+                }
+            }
         }
+    }
+
+    if (showCancelDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(20.dp),
+            title = { Text("Cancelar pedido", fontWeight = FontWeight.Bold) },
+            text = { Text("¿Estas seguro que deseas cancelar este pedido? Esta accion no se puede deshacer.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCancelDialog = false
+                        viewModel.cancelarPedido(pedidoId)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    if (cancelarState is CancelarState.Loading) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.onError,
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Si, cancelar")
+                    }
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showCancelDialog = false },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("No, volver")
+                }
+            }
+        )
     }
 }
 

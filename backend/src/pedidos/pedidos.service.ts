@@ -13,6 +13,33 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 export class PedidosService {
   constructor(private readonly prisma: PrismaService, private readonly eventEmitter: EventEmitter2) {}
 
+  async cancelarPedido(pedidoId: string, userId: string) {
+    const pedido: any = await this.prisma.$queryRaw`
+      SELECT id, cliente_id, lavador_id, estado FROM pedidos WHERE id = ${pedidoId}::uuid
+    `;
+
+    if (!pedido || pedido.length === 0) {
+      throw new NotFoundException('Pedido no encontrado');
+    }
+
+    const p = pedido[0];
+
+    if (p.cliente_id?.toString() !== userId && p.lavador_id?.toString() !== userId) {
+      throw new BadRequestException('No tienes permiso para cancelar este pedido');
+    }
+
+    if (p.estado !== 'PENDIENTE') {
+      throw new BadRequestException('Solo se pueden cancelar pedidos en estado PENDIENTE');
+    }
+
+    await this.prisma.$executeRaw`
+      UPDATE pedidos SET estado = 'CANCELADO'::estado_pedido_enum, actualizado_at = NOW()
+      WHERE id = ${pedidoId}::uuid
+    `;
+
+    return { success: true, message: 'Pedido cancelado correctamente' };
+  }
+
   async crearPedido(clienteId: string, dto: CreatePedidoDto) {
     // 1. Validar que el usuario exista y tenga rol CLIENTE
     const usuario = await this.prisma.usuarios.findUnique({

@@ -80,13 +80,16 @@ fun MisPedidosScreen(
                 }
             }
             is PedidosListState.Success -> {
-                if (currentState.pedidos.isEmpty()) {
+                val pedidosFiltrados = currentState.pedidos.filter {
+                    it.estado == "FINALIZADO" || it.estado == "CANCELADO"
+                }
+                if (pedidosFiltrados.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize().padding(padding),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "No tienes pedidos aun",
+                            "No tienes pedidos finalizados o cancelados",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -96,7 +99,7 @@ fun MisPedidosScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(currentState.pedidos) { pedido ->
+                        items(pedidosFiltrados) { pedido ->
                             PedidoCard(pedido)
                         }
                     }

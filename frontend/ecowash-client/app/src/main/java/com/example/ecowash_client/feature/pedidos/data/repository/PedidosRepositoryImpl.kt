@@ -33,6 +33,10 @@ class PedidosRepositoryImpl(
         return apiService.getPedidosCercanos(latitud, longitud, radioKm).map { it.toDomain() }
     }
 
+    override suspend fun cancelarPedido(pedidoId: String) {
+        apiService.cancelarPedido(pedidoId)
+    }
+
     private fun com.example.ecowash_client.feature.pedidos.data.model.PedidoDto.toDomain() = Pedido(
         id = id.orEmpty(),
         clienteId = cliente_id.orEmpty(),

@@ -27,6 +27,9 @@ class PedidosViewModel(context: Context) : ViewModel() {
     private val _pedidosState = MutableStateFlow<PedidosListState>(PedidosListState.Idle)
     val pedidosState: StateFlow<PedidosListState> = _pedidosState.asStateFlow()
 
+    private val _cancelarState = MutableStateFlow<CancelarState>(CancelarState.Idle)
+    val cancelarState: StateFlow<CancelarState> = _cancelarState.asStateFlow()
+
     fun crearPedido(
         precioServicioId: String,
         direccionTexto: String,
@@ -47,6 +50,23 @@ class PedidosViewModel(context: Context) : ViewModel() {
                 _crearState.value = CrearPedidoState.Error("${e.javaClass.simpleName}: ${e.message}")
             }
         }
+    }
+
+    fun cancelarPedido(pedidoId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _cancelarState.value = CancelarState.Loading
+            try {
+                repository.cancelarPedido(pedidoId)
+                _cancelarState.value = CancelarState.Success
+            } catch (e: Exception) {
+                Log.e("PedidosVM", "Error cancelar", e)
+                _cancelarState.value = CancelarState.Error("${e.message}")
+            }
+        }
+    }
+
+    fun resetCancelarState() {
+        _cancelarState.value = CancelarState.Idle
     }
 
     fun cargarPedidos() {
@@ -78,4 +98,11 @@ sealed interface PedidosListState {
     data object Loading : PedidosListState
     data class Success(val pedidos: List<Pedido>) : PedidosListState
     data class Error(val message: String) : PedidosListState
+}
+
+sealed interface CancelarState {
+    data object Idle : CancelarState
+    data object Loading : CancelarState
+    data object Success : CancelarState
+    data class Error(val message: String?) : CancelarState
 }
