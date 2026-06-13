@@ -63,18 +63,29 @@ class WasherHomeViewModel(context: Context) : ViewModel() {
                 try {
                     val pedidoJson = data.optJSONObject("pedido")
                     if (pedidoJson != null) {
+                        val precioTotal = pedidoJson.opt("precio_total")
+                        val comisionCalculada = pedidoJson.opt("comision_calculada")
+
                         val nuevoPedido = Pedido(
-                            id = pedidoJson.getString("id"),
-                            clienteId = pedidoJson.getString("cliente_id"),
+                            id = pedidoJson.optString("id", ""),
+                            clienteId = pedidoJson.optString("cliente_id", ""),
                             lavadorId = pedidoJson.optString("lavador_id", null),
-                            precioServicioId = pedidoJson.getString("precio_servicio_id"),
-                            estado = pedidoJson.getString("estado"),
-                            direccionTexto = pedidoJson.getString("direccion_texto"),
-                            precioTotal = pedidoJson.getDouble("precio_total"),
-                            comisionCalculada = pedidoJson.getDouble("comision_calculada"),
+                            precioServicioId = pedidoJson.optString("precio_servicio_id", ""),
+                            estado = pedidoJson.optString("estado", "PENDIENTE"),
+                            direccionTexto = pedidoJson.optString("direccion_texto", ""),
+                            precioTotal = when (precioTotal) {
+                                is Number -> precioTotal.toDouble()
+                                is String -> precioTotal.toDoubleOrNull() ?: 0.0
+                                else -> 0.0
+                            },
+                            comisionCalculada = when (comisionCalculada) {
+                                is Number -> comisionCalculada.toDouble()
+                                is String -> comisionCalculada.toDoubleOrNull() ?: 0.0
+                                else -> 0.0
+                            },
                             lavadoIniciadoAt = pedidoJson.optString("lavado_iniciado_at", null),
-                            creadoAt = pedidoJson.getString("creado_at"),
-                            actualizadoAt = pedidoJson.getString("actualizado_at")
+                            creadoAt = pedidoJson.optString("creado_at", ""),
+                            actualizadoAt = pedidoJson.optString("actualizado_at", null)
                         )
 
                         val coordenadas = data.optJSONObject("coordenadas_cliente")

@@ -159,7 +159,10 @@ export class PedidosService {
           ${comisionCalculada},
           'PENDIENTE'::estado_pedido_enum
         )
-        RETURNING id, cliente_id, precio_servicio_id, estado, direccion_texto, precio_total, comision_calculada, creado_at;
+        RETURNING id::text, cliente_id::text, lavador_id::text, precio_servicio_id::text, estado::text, direccion_texto, 
+                  precio_total::float8, comision_calculada::float8, 
+                  lavado_iniciado_at, TO_CHAR(creado_at, 'YYYY-MM-DD"T"HH24:MI:SS') AS creado_at, 
+                  TO_CHAR(actualizado_at, 'YYYY-MM-DD"T"HH24:MI:SS') AS actualizado_at;
       `;
 
       const pedidoGuardado = nuevoPedido[0];
@@ -183,12 +186,24 @@ export class PedidosService {
   async obtenerTodos() {
     const pedidos = await this.prisma.pedidos.findMany({
       orderBy: { creado_at: 'desc' },
+      select: {
+        id: true,
+        cliente_id: true,
+        lavador_id: true,
+        precio_servicio_id: true,
+        estado: true,
+        direccion_texto: true,
+        precio_total: true,
+        comision_calculada: true,
+        lavado_iniciado_at: true,
+        creado_at: true,
+        actualizado_at: true,
+      },
     });
     return pedidos.map(p => ({
       ...p,
       precio_total: Number(p.precio_total),
       comision_calculada: Number(p.comision_calculada),
-      ubicacion_cliente: undefined,
     }));
   }
 
@@ -196,12 +211,24 @@ export class PedidosService {
     const pedidos = await this.prisma.pedidos.findMany({
       where: { estado: 'PENDIENTE' },
       orderBy: { creado_at: 'desc' },
+      select: {
+        id: true,
+        cliente_id: true,
+        lavador_id: true,
+        precio_servicio_id: true,
+        estado: true,
+        direccion_texto: true,
+        precio_total: true,
+        comision_calculada: true,
+        lavado_iniciado_at: true,
+        creado_at: true,
+        actualizado_at: true,
+      },
     });
     return pedidos.map(p => ({
       ...p,
       precio_total: Number(p.precio_total),
       comision_calculada: Number(p.comision_calculada),
-      ubicacion_cliente: undefined,
     }));
   }
 
@@ -215,11 +242,13 @@ export class PedidosService {
         SELECT 
           id::text,
           cliente_id::text,
+          lavador_id::text,
           precio_servicio_id::text,
           estado::text,
           direccion_texto,
           precio_total::float8,
           comision_calculada::float8,
+          lavado_iniciado_at,
           TO_CHAR(creado_at, 'YYYY-MM-DD"T"HH24:MI:SS') AS creado_at,
           TO_CHAR(actualizado_at, 'YYYY-MM-DD"T"HH24:MI:SS') AS actualizado_at,
           ST_Y(ubicacion_cliente)::float8 AS latitud,

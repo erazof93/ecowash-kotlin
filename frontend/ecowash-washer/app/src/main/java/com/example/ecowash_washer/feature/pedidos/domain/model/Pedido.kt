@@ -11,5 +11,7 @@ data class Pedido(
     val comisionCalculada: Double,
     val lavadoIniciadoAt: String?,
     val creadoAt: String,
-    val actualizadoAt: String
+    val actualizadoAt: String?,
+    val latitud: Double? = null,
+    val longitud: Double? = null
 )

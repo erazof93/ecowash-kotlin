@@ -55,6 +55,8 @@ class PedidosRepositoryImpl(
         comisionCalculada = comision_calculada,
         lavadoIniciadoAt = lavado_iniciado_at,
         creadoAt = creado_at,
-        actualizadoAt = actualizado_at
+        actualizadoAt = actualizado_at,
+        latitud = latitud,
+        longitud = longitud
     )
 }
