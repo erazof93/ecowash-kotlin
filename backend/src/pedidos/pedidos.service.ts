@@ -181,16 +181,28 @@ export class PedidosService {
   }
 
   async obtenerTodos() {
-    return this.prisma.pedidos.findMany({
+    const pedidos = await this.prisma.pedidos.findMany({
       orderBy: { creado_at: 'desc' },
     });
+    return pedidos.map(p => ({
+      ...p,
+      precio_total: Number(p.precio_total),
+      comision_calculada: Number(p.comision_calculada),
+      ubicacion_cliente: undefined,
+    }));
   }
 
   async obtenerPendientes() {
-    return this.prisma.pedidos.findMany({
+    const pedidos = await this.prisma.pedidos.findMany({
       where: { estado: 'PENDIENTE' },
       orderBy: { creado_at: 'desc' },
     });
+    return pedidos.map(p => ({
+      ...p,
+      precio_total: Number(p.precio_total),
+      comision_calculada: Number(p.comision_calculada),
+      ubicacion_cliente: undefined,
+    }));
   }
 
   async obtenerPedidosCercanos(dto: GetCercanosDto) {
